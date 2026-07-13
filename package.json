@@ -21,7 +21,8 @@
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset",
-    "prepare": "husky"
+    "postinstall": "prisma generate",
+    "prepare": "husky || true"
   },
   "dependencies": {
     "@auth/prisma-adapter": "2.9.1",
