@@ -1,0 +1,141 @@
+name: CI
+
+on:
+  push:
+    branches: [main, staging, 'dev/**', 'feature/**', 'fix/**']
+  pull_request:
+    branches: [main, staging]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Type Check, Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: pnpm type-check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Format check
+        run: pnpm format:check
+
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests with coverage
+        run: pnpm test:coverage
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [quality, test]
+    env:
+      # Build-time env vars (non-secret placeholders for CI build validation)
+      NEXT_PUBLIC_APP_URL: https://workspace.sdcindia01.com
+      NEXT_PUBLIC_APP_NAME: SDC Workspace
+      AUTH_SECRET: ci-build-secret-placeholder
+      AUTH_URL: https://workspace.sdcindia01.com
+      DATABASE_URL: postgresql://ci:ci@localhost/ci?pgbouncer=true
+      DIRECT_URL: postgresql://ci:ci@localhost/ci
+      GOOGLE_DOMAIN: sdcindia01.com
+      GOOGLE_SERVICE_ACCOUNT_EMAIL: placeholder@placeholder.iam.gserviceaccount.com
+      GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: placeholder
+      GOOGLE_SERVICE_ACCOUNT_CLIENT_ID: placeholder
+      GOOGLE_ADMIN_EMAIL: admin@sdcindia01.com
+      GOOGLE_DRIVE_SHARED_FOLDER_ID: placeholder
+      GOOGLE_CALENDAR_ID: primary
+      CRON_SECRET: ci-cron-secret-placeholder
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm db:generate
+
+      - name: Build
+        run: pnpm build
+
+  security:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit dependencies
+        run: pnpm audit --audit-level critical

@@ -1,0 +1,1387 @@
+// =============================================================
+// SDC Workspace — Prisma Schema
+// Database: PostgreSQL (Neon)
+// ORM: Prisma 6
+// =============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// =============================================================
+// ENUMS
+// =============================================================
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+  ON_LEAVE
+  PROBATION
+  RESIGNED
+  TERMINATED
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERN
+}
+
+enum WorkLocation {
+  OFFICE
+  WFH
+  HYBRID
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum LeaveType {
+  CASUAL
+  SICK
+  EARNED
+  COMP_OFF
+  HALF_DAY
+  WFH
+  UNPAID
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED_L1
+  APPROVED_L2
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum HalfDayPeriod {
+  MORNING
+  AFTERNOON
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  HALF_DAY
+  WFH
+  HOLIDAY
+  WEEKLY_OFF
+  ON_LEAVE
+}
+
+enum CorrectionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum HolidayType {
+  NATIONAL
+  REGIONAL
+  OPTIONAL
+}
+
+enum TaskStatus {
+  BACKLOG
+  TODO
+  IN_PROGRESS
+  REVIEW
+  BLOCKED
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+enum MilestoneStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  MISSED
+}
+
+enum RiskSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum RiskProbability {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum RiskStatus {
+  OPEN
+  MITIGATED
+  CLOSED
+}
+
+enum ProjectMemberRole {
+  MANAGER
+  LEAD
+  MEMBER
+  VIEWER
+}
+
+enum MeetingType {
+  INTERNAL
+  CLIENT
+  STANDUP
+  REVIEW
+  RECURRING
+  ONE_ON_ONE
+}
+
+enum MeetingStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum AttendeeStatus {
+  INVITED
+  ACCEPTED
+  DECLINED
+  TENTATIVE
+}
+
+enum CrmLeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  CONVERTED
+  LOST
+}
+
+enum CrmLeadSource {
+  WEBSITE
+  REFERRAL
+  COLD_CALL
+  EVENT
+  SOCIAL_MEDIA
+  OTHER
+}
+
+enum CrmAccountStatus {
+  PROSPECT
+  ACTIVE
+  INACTIVE
+}
+
+enum CrmOpportunityStage {
+  LEAD
+  QUALIFIED
+  PROPOSAL
+  NEGOTIATION
+  WON
+  LOST
+}
+
+enum CrmActivityType {
+  CALL
+  EMAIL
+  MEETING
+  NOTE
+  TASK
+  DEMO
+}
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum DocumentCategory {
+  POLICY
+  SOP
+  CONTRACT
+  OFFER_LETTER
+  APPOINTMENT_LETTER
+  EXPERIENCE_LETTER
+  HR_FILE
+  PROJECT_DOC
+  TEMPLATE
+  ASSET_PROOF
+  OTHER
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  PUSH
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  APPROVE
+  REJECT
+  CANCEL
+  ARCHIVE
+  RESTORE
+  LOGIN
+  LOGOUT
+  LOGIN_FAILED
+  SYNC
+  EXPORT
+  TRANSFER
+  PROMOTE
+}
+
+enum SettingsModule {
+  ORGANIZATION
+  ATTENDANCE
+  LEAVE
+  NOTIFICATIONS
+  GOOGLE_WORKSPACE
+  SECURITY
+  BRANDING
+  SYSTEM
+}
+
+enum RecruitmentStatus {
+  OPEN
+  IN_PROGRESS
+  CLOSED
+  CANCELLED
+}
+
+enum CandidateStatus {
+  APPLIED
+  SCREENING
+  INTERVIEW
+  OFFER
+  HIRED
+  REJECTED
+}
+
+enum SyncStatus {
+  SYNCED
+  PENDING_SYNC
+  SYNC_FAILED
+}
+
+
+// =============================================================
+// ORGANIZATION & BRANCH (future-ready, inactive in V1)
+// =============================================================
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  domain      String   @unique
+  logoUrl     String?
+  settings    Json     @default("{}")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+  employees   Employee[]
+  departments Department[]
+  branches    Branch[]
+
+  @@map("organizations")
+}
+
+model Branch {
+  id             String        @id @default(cuid())
+  organizationId String?
+  name           String
+  city           String?
+  country        String?
+  address        String?
+  isActive       Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  employees      Employee[]
+
+  @@index([organizationId])
+  @@map("branches")
+}
+
+// =============================================================
+// AUTH — User, Session, Account (NextAuth / Auth.js)
+// =============================================================
+
+model User {
+  id             String     @id @default(cuid())
+  googleId       String?    @unique
+  email          String     @unique
+  name           String
+  photoUrl       String?
+  passwordHash   String?    @db.Text
+  domain         String
+  roleId         String
+  organizationId String?
+  isActive       Boolean    @default(true)
+  lastLoginAt    DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  isDeleted      Boolean    @default(false)
+  deletedAt      DateTime?
+  deletedById    String?
+
+  role           Role       @relation(fields: [roleId], references: [id])
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  employee       Employee?
+  sessions       Session[]
+  accounts       Account[]
+  notifications  Notification[]
+  auditLogs      AuditLog[]
+  deletedBy      User?      @relation("UserDeletedBy", fields: [deletedById], references: [id])
+  deletedUsers   User[]     @relation("UserDeletedBy")
+
+  @@index([googleId])
+  @@index([email])
+  @@index([roleId])
+  @@index([organizationId])
+  @@map("users")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+
+// =============================================================
+// RBAC — Role, Permission, RolePermission
+// =============================================================
+
+model Role {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  displayName String
+  description String?
+  isSystem    Boolean          @default(false)
+  organizationId String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  users       User[]
+  permissions RolePermission[]
+
+  @@index([name])
+  @@map("roles")
+}
+
+model Permission {
+  id          String           @id @default(cuid())
+  module      String
+  action      String
+  condition   String
+  key         String           @unique
+  description String?
+  createdAt   DateTime         @default(now())
+
+  roles       RolePermission[]
+
+  @@unique([module, action, condition])
+  @@index([key])
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  createdAt    DateTime @default(now())
+
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// =============================================================
+// ORGANIZATION STRUCTURE — Department, Designation, Team
+// =============================================================
+
+model Department {
+  id             String      @id @default(cuid())
+  name           String
+  code           String      @unique
+  googleOUId     String?
+  parentId       String?
+  headId         String?
+  organizationId String?
+  isActive       Boolean     @default(true)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  isDeleted      Boolean     @default(false)
+  deletedAt      DateTime?
+  deletedById    String?
+
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  parent         Department?   @relation("DepartmentHierarchy", fields: [parentId], references: [id])
+  children       Department[]  @relation("DepartmentHierarchy")
+  designations   Designation[]
+  employees      Employee[]
+  recruitments   Recruitment[]
+
+  @@index([code])
+  @@index([organizationId])
+  @@map("departments")
+}
+
+model Designation {
+  id           String      @id @default(cuid())
+  name         String
+  departmentId String
+  level        Int?
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  department   Department  @relation(fields: [departmentId], references: [id])
+  employees    Employee[]
+  recruitments Recruitment[]
+
+  @@index([departmentId])
+  @@map("designations")
+}
+
+model Team {
+  id             String       @id @default(cuid())
+  name           String
+  leadId         String?
+  departmentId   String?
+  googleGroupId  String?
+  organizationId String?
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+
+  members        TeamMember[]
+
+  @@map("teams")
+}
+
+model TeamMember {
+  teamId     String
+  employeeId String
+  role       String   @default("MEMBER")
+  joinedAt   DateTime @default(now())
+
+  team       Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@id([teamId, employeeId])
+  @@map("team_members")
+}
+
+
+// =============================================================
+// EMPLOYEE
+// =============================================================
+
+model Employee {
+  id               String         @id @default(cuid())
+  employeeCode     String         @unique
+  userId           String         @unique
+  departmentId     String
+  designationId    String
+  managerId        String?
+  branchId         String?
+  organizationId   String?
+  joiningDate      DateTime
+  dateOfBirth      DateTime?
+  gender           Gender?
+  personalEmail    String?
+  phone            String?
+  alternatePhone   String?
+  address          Json?
+  emergencyContact Json?
+  employmentType   EmploymentType @default(FULL_TIME)
+  workLocation     WorkLocation   @default(OFFICE)
+  probationEndDate DateTime?
+  confirmationDate DateTime?
+  lastWorkingDay   DateTime?
+  status           EmployeeStatus @default(ACTIVE)
+  shiftId          String?
+  metadata         Json           @default("{}")
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  createdById      String?
+  updatedById      String?
+  isDeleted        Boolean        @default(false)
+  deletedAt        DateTime?
+  deletedById      String?
+
+  user             User           @relation(fields: [userId], references: [id])
+  department       Department     @relation(fields: [departmentId], references: [id])
+  designation      Designation    @relation(fields: [designationId], references: [id])
+  manager          Employee?      @relation("EmployeeManager", fields: [managerId], references: [id])
+  directReports    Employee[]     @relation("EmployeeManager")
+  branch           Branch?        @relation(fields: [branchId], references: [id])
+  organization     Organization?  @relation(fields: [organizationId], references: [id])
+  shift            ShiftPolicy?   @relation(fields: [shiftId], references: [id])
+  attendance       AttendanceRecord[]
+  corrections      AttendanceCorrection[]
+  leaveRequests    LeaveRequest[]
+  leaveBalances    LeaveBalance[]
+  projectMembers   ProjectMember[]
+  ownedProjects    Project[]      @relation("ProjectManager")
+  assignedTasks    Task[]         @relation("TaskAssignee")
+  reportedTasks    Task[]         @relation("TaskReporter")
+  organizedMeetings Meeting[]
+  actionItems      MeetingActionItem[]
+  crmLeads         CrmLead[]      @relation("LeadAssignee")
+  crmAccounts      CrmAccount[]
+  crmOpportunities CrmOpportunity[]
+  documents        Document[]     @relation("EmployeeDocuments")
+  candidates       Candidate[]    @relation("InterviewAssignee")
+
+  @@index([employeeCode])
+  @@index([userId])
+  @@index([departmentId])
+  @@index([managerId])
+  @@index([status])
+  @@map("employees")
+}
+
+// =============================================================
+// SHIFT & HOLIDAY
+// =============================================================
+
+model ShiftPolicy {
+  id               String     @id @default(cuid())
+  name             String
+  startTime        String
+  endTime          String
+  graceMinutes     Int        @default(15)
+  workHoursPerDay  Float      @default(8)
+  weeklyOffDays    Json       @default("[0,6]")
+  organizationId   String?
+  isActive         Boolean    @default(true)
+  createdAt        DateTime   @default(now())
+
+  employees        Employee[]
+
+  @@map("shift_policies")
+}
+
+model HolidayCalendar {
+  id             String    @id @default(cuid())
+  name           String
+  year           Int
+  organizationId String?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+
+  holidays       Holiday[]
+
+  @@map("holiday_calendars")
+}
+
+model Holiday {
+  id         String      @id @default(cuid())
+  calendarId String
+  name       String
+  date       DateTime
+  type       HolidayType @default(NATIONAL)
+
+  calendar   HolidayCalendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+
+  @@index([calendarId])
+  @@index([date])
+  @@map("holidays")
+}
+
+
+// =============================================================
+// ATTENDANCE
+// =============================================================
+
+model AttendanceRecord {
+  id              String           @id @default(cuid())
+  employeeId      String
+  date            DateTime         @db.Date
+  clockInTime     DateTime?
+  clockOutTime    DateTime?
+  totalHours      Float?
+  breaks          Json             @default("[]")
+  isWFH           Boolean          @default(false)
+  isHalfDay       Boolean          @default(false)
+  isAbsent        Boolean          @default(false)
+  isHoliday       Boolean          @default(false)
+  isWeeklyOff     Boolean          @default(false)
+  isOvertime      Boolean          @default(false)
+  overtimeHours   Float?
+  ipAddress       String?
+  location        Json?
+  status          AttendanceStatus @default(PRESENT)
+  notes           String?
+  organizationId  String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  createdById     String?
+  updatedById     String?
+
+  employee        Employee         @relation(fields: [employeeId], references: [id])
+  corrections     AttendanceCorrection[]
+
+  @@unique([employeeId, date])
+  @@index([status])
+  @@index([date])
+  @@map("attendance_records")
+}
+
+model AttendanceCorrection {
+  id                  String           @id @default(cuid())
+  attendanceId        String
+  employeeId          String
+  requestedClockIn    DateTime?
+  requestedClockOut   DateTime?
+  reason              String
+  status              CorrectionStatus @default(PENDING)
+  approverId          String?
+  approvedAt          DateTime?
+  rejectionReason     String?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  createdById         String
+
+  attendance          AttendanceRecord @relation(fields: [attendanceId], references: [id])
+  employee            Employee         @relation(fields: [employeeId], references: [id])
+
+  @@index([attendanceId])
+  @@index([employeeId])
+  @@index([status])
+  @@map("attendance_corrections")
+}
+
+// =============================================================
+// LEAVE
+// =============================================================
+
+model LeaveBalance {
+  id         String   @id @default(cuid())
+  employeeId String
+  year       Int
+  casual     Float    @default(12)
+  sick       Float    @default(12)
+  earned     Float    @default(15)
+  compOff    Float    @default(0)
+  wfh        Float    @default(24)
+  unpaid     Float    @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  employee   Employee @relation(fields: [employeeId], references: [id])
+
+  @@unique([employeeId, year])
+  @@map("leave_balances")
+}
+
+model LeaveRequest {
+  id                      String        @id @default(cuid())
+  employeeId              String
+  leaveType               LeaveType
+  startDate               DateTime      @db.Date
+  endDate                 DateTime      @db.Date
+  totalDays               Float
+  isHalfDay               Boolean       @default(false)
+  halfDayPeriod           HalfDayPeriod?
+  reason                  String
+  status                  LeaveStatus   @default(PENDING)
+  leadApproverId          String?
+  leadApprovedAt          DateTime?
+  hrApproverId            String?
+  hrApprovedAt            DateTime?
+  rejectionReason         String?
+  googleCalendarEventId   String?
+  googleSyncStatus        SyncStatus    @default(PENDING_SYNC)
+  organizationId          String?
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+  isDeleted               Boolean       @default(false)
+  deletedAt               DateTime?
+  deletedById             String?
+
+  employee                Employee      @relation(fields: [employeeId], references: [id])
+
+  @@index([employeeId])
+  @@index([status])
+  @@index([startDate])
+  @@map("leave_requests")
+}
+
+
+// =============================================================
+// PROJECTS & TASKS
+// =============================================================
+
+model Project {
+  id              String        @id @default(cuid())
+  name            String
+  description     String?
+  status          ProjectStatus @default(PLANNING)
+  priority        TaskPriority  @default(MEDIUM)
+  startDate       DateTime?
+  endDate         DateTime?
+  budget          Float?
+  budgetUsed      Float         @default(0)
+  managerId       String
+  clientId        String?
+  driveFolderUrl  String?
+  driveFolderId   String?
+  coverColor      String?
+  organizationId  String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  createdById     String
+  updatedById     String?
+  isDeleted       Boolean       @default(false)
+  deletedAt       DateTime?
+  deletedById     String?
+
+  manager         Employee      @relation("ProjectManager", fields: [managerId], references: [id])
+  client          CrmAccount?   @relation("ProjectClient", fields: [clientId], references: [id])
+  members         ProjectMember[]
+  milestones      Milestone[]
+  risks           Risk[]
+  tasks           Task[]
+  meetings        Meeting[]
+  projectDocuments ProjectDocument[]
+
+  @@index([status])
+  @@index([managerId])
+  @@map("projects")
+}
+
+model ProjectMember {
+  projectId  String
+  employeeId String
+  role       ProjectMemberRole @default(MEMBER)
+  joinedAt   DateTime          @default(now())
+
+  project    Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  employee   Employee          @relation(fields: [employeeId], references: [id])
+
+  @@id([projectId, employeeId])
+  @@map("project_members")
+}
+
+model Milestone {
+  id          String          @id @default(cuid())
+  projectId   String
+  title       String
+  description String?
+  dueDate     DateTime
+  completedAt DateTime?
+  status      MilestoneStatus @default(PENDING)
+  createdAt   DateTime        @default(now())
+  createdById String
+
+  project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks       Task[]
+
+  @@index([projectId])
+  @@map("milestones")
+}
+
+/// Lightweight, link-based project documents (e.g. a requirement PDF hosted on
+/// Google Drive/Docs). `isVisibleToTeam` controls whether non-managers can see it.
+model ProjectDocument {
+  id              String   @id @default(cuid())
+  projectId       String
+  title           String
+  url             String
+  description     String?
+  isVisibleToTeam Boolean  @default(false)
+  uploadedById    String
+  createdAt       DateTime @default(now())
+
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("project_documents")
+}
+
+model Risk {
+  id          String          @id @default(cuid())
+  projectId   String
+  title       String
+  description String?
+  severity    RiskSeverity    @default(MEDIUM)
+  probability RiskProbability @default(MEDIUM)
+  impact      String?
+  mitigation  String?
+  status      RiskStatus      @default(OPEN)
+  ownerId     String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("risks")
+}
+
+model Task {
+  id                  String       @id @default(cuid())
+  title               String
+  description         String?
+  status              TaskStatus   @default(TODO)
+  priority            TaskPriority @default(MEDIUM)
+  dueDate             DateTime?
+  startDate           DateTime?
+  projectId           String?
+  milestoneId         String?
+  assigneeId          String?
+  reporterId          String
+  parentTaskId        String?
+  labels              String[]
+  estimatedHours      Float?
+  timeTrackedMinutes  Int          @default(0)
+  order               Int          @default(0)
+  organizationId      String?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  createdById         String
+  updatedById         String?
+  isDeleted           Boolean      @default(false)
+  deletedAt           DateTime?
+  deletedById         String?
+
+  project    Project?    @relation(fields: [projectId], references: [id])
+  milestone  Milestone?  @relation(fields: [milestoneId], references: [id])
+  assignee   Employee?   @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  reporter   Employee    @relation("TaskReporter", fields: [reporterId], references: [id])
+  parent     Task?       @relation("TaskSubtasks", fields: [parentTaskId], references: [id])
+  subtasks   Task[]      @relation("TaskSubtasks")
+  comments   TaskComment[]
+  checklists TaskChecklist[]
+  attachments TaskAttachment[]
+
+  @@index([status])
+  @@index([assigneeId])
+  @@index([projectId])
+  @@index([dueDate])
+  @@index([priority])
+  @@map("tasks")
+}
+
+model TaskComment {
+  id        String    @id @default(cuid())
+  taskId    String
+  authorId  String
+  content   String    @db.Text
+  editedAt  DateTime?
+  createdAt DateTime  @default(now())
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  task      Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("task_comments")
+}
+
+model TaskChecklist {
+  id            String    @id @default(cuid())
+  taskId        String
+  title         String
+  isCompleted   Boolean   @default(false)
+  completedAt   DateTime?
+  completedById String?
+  order         Int       @default(0)
+  createdAt     DateTime  @default(now())
+
+  task          Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("task_checklists")
+}
+
+model TaskAttachment {
+  id           String   @id @default(cuid())
+  taskId       String
+  fileName     String
+  fileUrl      String
+  driveFileId  String?
+  fileSize     Int?
+  mimeType     String?
+  uploadedById String
+  createdAt    DateTime @default(now())
+
+  task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("task_attachments")
+}
+
+
+// =============================================================
+// MEETINGS
+// =============================================================
+
+model Meeting {
+  id                    String        @id @default(cuid())
+  title                 String
+  description           String?
+  type                  MeetingType   @default(INTERNAL)
+  scheduledAt           DateTime
+  duration              Int
+  timezone              String        @default("Asia/Kolkata")
+  organizerId           String
+  googleCalendarEventId String?
+  googleSyncStatus      SyncStatus    @default(PENDING_SYNC)
+  meetLink              String?
+  recordingLink         String?
+  status                MeetingStatus @default(SCHEDULED)
+  isRecurring           Boolean       @default(false)
+  recurringRule         String?
+  projectId             String?
+  organizationId        String?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  createdById           String
+  isDeleted             Boolean       @default(false)
+  deletedAt             DateTime?
+  deletedById           String?
+
+  organizer   Employee         @relation(fields: [organizerId], references: [id])
+  project     Project?         @relation(fields: [projectId], references: [id])
+  attendees   MeetingAttendee[]
+  minutes     MeetingMinutes?
+  actionItems MeetingActionItem[]
+
+  @@index([scheduledAt])
+  @@index([organizerId])
+  @@index([status])
+  @@map("meetings")
+}
+
+model MeetingAttendee {
+  meetingId  String
+  userId     String
+  status     AttendeeStatus @default(INVITED)
+  responseAt DateTime?
+
+  meeting    Meeting        @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@id([meetingId, userId])
+  @@map("meeting_attendees")
+}
+
+model MeetingMinutes {
+  id           String   @id @default(cuid())
+  meetingId    String   @unique
+  content      String   @db.Text
+  recordedById String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  meeting      Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@map("meeting_minutes")
+}
+
+model MeetingActionItem {
+  id         String     @id @default(cuid())
+  meetingId  String
+  title      String
+  assigneeId String?
+  dueDate    DateTime?
+  status     TaskStatus @default(TODO)
+  taskId     String?
+  createdAt  DateTime   @default(now())
+
+  meeting    Meeting    @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  assignee   Employee?  @relation(fields: [assigneeId], references: [id])
+
+  @@index([meetingId])
+  @@map("meeting_action_items")
+}
+
+// =============================================================
+// CRM
+// =============================================================
+
+model CrmAccount {
+  id             String           @id @default(cuid())
+  name           String
+  industry       String?
+  website        String?
+  phone          String?
+  email          String?
+  address        Json?
+  accountOwnerId String
+  status         CrmAccountStatus @default(PROSPECT)
+  organizationId String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  createdById    String
+  isDeleted      Boolean          @default(false)
+  deletedAt      DateTime?
+  deletedById    String?
+
+  accountOwner   Employee         @relation(fields: [accountOwnerId], references: [id])
+  contacts       CrmContact[]
+  opportunities  CrmOpportunity[]
+  activities     CrmActivity[]
+  projects       Project[]        @relation("ProjectClient")
+
+  @@index([accountOwnerId])
+  @@map("crm_accounts")
+}
+
+model CrmContact {
+  id             String     @id @default(cuid())
+  firstName      String
+  lastName       String?
+  email          String?
+  phone          String?
+  jobTitle       String?
+  accountId      String?
+  ownerId        String
+  organizationId String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  createdById    String
+  isDeleted      Boolean    @default(false)
+  deletedAt      DateTime?
+  deletedById    String?
+
+  account        CrmAccount? @relation(fields: [accountId], references: [id])
+  activities     CrmActivity[]
+
+  @@index([accountId])
+  @@map("crm_contacts")
+}
+
+model CrmLead {
+  id                  String        @id @default(cuid())
+  firstName           String
+  lastName            String?
+  email               String?
+  phone               String?
+  company             String?
+  source              CrmLeadSource @default(OTHER)
+  status              CrmLeadStatus @default(NEW)
+  assignedToId        String?
+  convertedToContactId String?
+  organizationId      String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  createdById         String
+  isDeleted           Boolean       @default(false)
+  deletedAt           DateTime?
+  deletedById         String?
+
+  assignedTo          Employee?     @relation("LeadAssignee", fields: [assignedToId], references: [id])
+  activities          CrmActivity[]
+
+  @@index([status])
+  @@index([assignedToId])
+  @@map("crm_leads")
+}
+
+model CrmOpportunity {
+  id             String               @id @default(cuid())
+  name           String
+  accountId      String
+  contactId      String?
+  stage          CrmOpportunityStage  @default(LEAD)
+  value          Float?
+  currency       String               @default("INR")
+  closingDate    DateTime?
+  probability    Int?
+  ownerId        String
+  lostReason     String?
+  organizationId String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  createdById    String
+  isDeleted      Boolean              @default(false)
+  deletedAt      DateTime?
+  deletedById    String?
+
+  account        CrmAccount           @relation(fields: [accountId], references: [id])
+  owner          Employee             @relation(fields: [ownerId], references: [id])
+  quotations     CrmQuotation[]
+  activities     CrmActivity[]
+
+  @@index([stage])
+  @@index([ownerId])
+  @@map("crm_opportunities")
+}
+
+model CrmQuotation {
+  id             String          @id @default(cuid())
+  opportunityId  String
+  title          String
+  amount         Float
+  discount       Float?
+  finalAmount    Float
+  status         QuotationStatus @default(DRAFT)
+  validUntil     DateTime?
+  driveFileId    String?
+  createdById    String
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  opportunity    CrmOpportunity  @relation(fields: [opportunityId], references: [id])
+
+  @@index([opportunityId])
+  @@map("crm_quotations")
+}
+
+model CrmActivity {
+  id             String          @id @default(cuid())
+  type           CrmActivityType
+  subject        String
+  notes          String?         @db.Text
+  outcome        String?
+  scheduledAt    DateTime?
+  completedAt    DateTime?
+  leadId         String?
+  contactId      String?
+  accountId      String?
+  opportunityId  String?
+  userId         String
+  gmailThreadId  String?
+  gmailMessageId String?
+  organizationId String?
+  createdAt      DateTime        @default(now())
+
+  lead           CrmLead?        @relation(fields: [leadId], references: [id])
+  contact        CrmContact?     @relation(fields: [contactId], references: [id])
+  account        CrmAccount?     @relation(fields: [accountId], references: [id])
+  opportunity    CrmOpportunity? @relation(fields: [opportunityId], references: [id])
+
+  @@index([leadId])
+  @@index([contactId])
+  @@index([accountId])
+  @@index([userId])
+  @@map("crm_activities")
+}
+
+
+// =============================================================
+// DOCUMENTS, NOTIFICATIONS, AUDIT, SETTINGS
+// =============================================================
+
+model Document {
+  id             String           @id @default(cuid())
+  name           String
+  description    String?
+  category       DocumentCategory @default(OTHER)
+  driveFileId    String           @unique
+  driveUrl       String
+  mimeType       String?
+  fileSize       Int?
+  employeeId     String?
+  projectId      String?
+  uploadedById   String
+  organizationId String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  isDeleted      Boolean          @default(false)
+  deletedAt      DateTime?
+  deletedById    String?
+
+  employee       Employee?        @relation("EmployeeDocuments", fields: [employeeId], references: [id])
+
+  @@index([category])
+  @@index([employeeId])
+  @@index([projectId])
+  @@map("documents")
+}
+
+model Notification {
+  id             String              @id @default(cuid())
+  userId         String
+  title          String
+  message        String              @db.Text
+  type           NotificationType    @default(INFO)
+  channel        NotificationChannel @default(IN_APP)
+  isRead         Boolean             @default(false)
+  readAt         DateTime?
+  link           String?
+  resourceType   String?
+  resourceId     String?
+  organizationId String?
+  createdAt      DateTime            @default(now())
+
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id             String      @id @default(cuid())
+  userId         String?
+  action         AuditAction
+  resource       String
+  resourceId     String?
+  oldValues      Json?
+  newValues      Json?
+  ipAddress      String?
+  userAgent      String?
+  reason         String?
+  correlationId  String?
+  organizationId String?
+  createdAt      DateTime    @default(now())
+
+  user           User?       @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([resource])
+  @@index([resourceId])
+  @@index([createdAt])
+  @@index([correlationId])
+  @@map("audit_logs")
+}
+
+model Settings {
+  id             String         @id @default(cuid())
+  module         SettingsModule
+  key            String
+  value          Json
+  organizationId String?
+  updatedById    String?
+  updatedAt      DateTime       @updatedAt
+
+  @@unique([module, key, organizationId])
+  @@map("settings")
+}
+
+// =============================================================
+// HR — RECRUITMENT & CANDIDATES
+// =============================================================
+
+model Recruitment {
+  id             String            @id @default(cuid())
+  positionTitle  String
+  departmentId   String
+  designationId  String?
+  headcount      Int               @default(1)
+  status         RecruitmentStatus @default(OPEN)
+  jobDescription String?           @db.Text
+  openedAt       DateTime          @default(now())
+  closedAt       DateTime?
+  organizationId String?
+  createdById    String
+  isDeleted      Boolean           @default(false)
+  deletedAt      DateTime?
+
+  department     Department        @relation(fields: [departmentId], references: [id])
+  designation    Designation?      @relation(fields: [designationId], references: [id])
+  candidates     Candidate[]
+
+  @@index([status])
+  @@index([departmentId])
+  @@map("recruitments")
+}
+
+model Candidate {
+  id              String          @id @default(cuid())
+  recruitmentId   String
+  firstName       String
+  lastName        String?
+  email           String
+  phone           String?
+  resumeDriveFileId String?
+  status          CandidateStatus @default(APPLIED)
+  interviewDate   DateTime?
+  interviewerId   String?
+  notes           String?         @db.Text
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  recruitment     Recruitment     @relation(fields: [recruitmentId], references: [id])
+  interviewer     Employee?       @relation("InterviewAssignee", fields: [interviewerId], references: [id])
+
+  @@index([recruitmentId])
+  @@map("candidates")
+}
