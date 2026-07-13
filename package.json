@@ -39,7 +39,6 @@
     "clsx": "2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "4.1.0",
-    "googleapis": "148.0.0",
     "lucide-react": "0.517.0",
     "next": "15.4.2",
     "next-auth": "5.0.0-beta.31",
