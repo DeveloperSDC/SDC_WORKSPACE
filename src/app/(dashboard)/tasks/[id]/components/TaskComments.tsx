@@ -6,6 +6,7 @@ import { Send } from 'lucide-react'
 import { addTaskComment } from '../../actions'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { LocalTime } from '@/components/ui/local-time'
 
 export interface TaskCommentItem {
   id: string
@@ -58,7 +59,9 @@ export function TaskComments({
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline gap-2">
                   <span className="text-sm font-medium">{comment.author}</span>
-                  <span className="text-muted-foreground text-xs">{comment.createdAt}</span>
+                  <span className="text-muted-foreground text-xs">
+                    <LocalTime iso={comment.createdAt} mode="datetime" />
+                  </span>
                 </div>
                 <p className="mt-0.5 text-sm whitespace-pre-wrap">{comment.content}</p>
               </div>

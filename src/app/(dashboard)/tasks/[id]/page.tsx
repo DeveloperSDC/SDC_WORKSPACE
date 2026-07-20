@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { TaskPriorityBadge } from '../components/TaskPriorityBadge'
 import { TaskStatusControl } from './components/TaskStatusControl'
 import { TaskComments, type TaskCommentItem } from './components/TaskComments'
+import { LocalTime } from '@/components/ui/local-time'
 
 export const metadata: Metadata = {
   title: 'Task',
@@ -73,12 +74,7 @@ export default async function TaskDetailPage({ params }: TaskPageProps) {
     id: comment.id,
     author: authorName.get(comment.authorId) ?? 'Unknown',
     content: comment.content,
-    createdAt: comment.createdAt.toLocaleString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    }),
+    createdAt: comment.createdAt.toISOString(),
   }))
 
   return (
@@ -149,11 +145,7 @@ export default async function TaskDetailPage({ params }: TaskPageProps) {
             <div>
               <p className="text-muted-foreground text-xs">Due</p>
               <p className="mt-1 text-sm">
-                {task.dueDate.toLocaleDateString('en-IN', {
-                  day: '2-digit',
-                  month: 'short',
-                  year: 'numeric',
-                })}
+                <LocalTime iso={task.dueDate.toISOString()} mode="date" />
               </p>
             </div>
           ) : null}

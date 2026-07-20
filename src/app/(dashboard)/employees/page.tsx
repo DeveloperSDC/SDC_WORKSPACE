@@ -1,9 +1,15 @@
 import { Users } from 'lucide-react'
 
 import { db } from '@/lib/db/prisma'
+import { requireAuth, hasPermission } from '@/lib/auth/guards'
+import { PERMISSIONS } from '@/lib/constants/permissions.constants'
 import { EmployeeTable } from './components/EmployeeTable'
 
 export default async function EmployeesPage() {
+  const user = await requireAuth()
+  // Only Admin / Super Admin (or HR) can add, edit, or remove employees.
+  const canManage = hasPermission(user, PERMISSIONS.EMPLOYEES_CREATE_ALL)
+
   const [employees, departments, designations] = await Promise.all([
     db.employee.findMany({
       where: {
@@ -79,6 +85,7 @@ export default async function EmployeesPage() {
           employees={employees}
           departments={departments}
           designations={designations}
+          canManage={canManage}
         />
       </div>
     </div>

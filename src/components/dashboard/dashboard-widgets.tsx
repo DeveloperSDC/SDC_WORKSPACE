@@ -1,43 +1,43 @@
-import type { Session } from 'next-auth'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Users, Clock, CheckSquare, Calendar } from 'lucide-react'
+import { Users, Clock, CheckSquare, FolderKanban } from 'lucide-react'
 
-interface DashboardWidgetsProps {
-  session: Session | null
+export interface DashboardStats {
+  attendance: string
+  pendingTasks: number
+  myProjects: number
+  teamMembers: number
 }
 
 /**
- * Dashboard widget grid.
- * Phase 1: Static placeholder widgets.
- * Phase 2+: Replace with real data fetched from services.
+ * Dashboard summary widgets — real data passed in from the server page.
  */
-export function DashboardWidgets({ session: _session }: DashboardWidgetsProps) {
+export function DashboardWidgets({ stats }: { stats: DashboardStats }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <StatCard
         title="My Attendance"
-        value="Present"
+        value={stats.attendance}
         description="Today"
         icon={Clock}
         iconClassName="text-green-500"
       />
       <StatCard
         title="Pending Tasks"
-        value="—"
+        value={String(stats.pendingTasks)}
         description="Assigned to you"
         icon={CheckSquare}
         iconClassName="text-blue-500"
       />
       <StatCard
-        title="Upcoming Meetings"
-        value="—"
-        description="Next 7 days"
-        icon={Calendar}
+        title="My Projects"
+        value={String(stats.myProjects)}
+        description="Active involvement"
+        icon={FolderKanban}
         iconClassName="text-purple-500"
       />
       <StatCard
         title="Team Members"
-        value="—"
+        value={String(stats.teamMembers)}
         description="In your department"
         icon={Users}
         iconClassName="text-orange-500"
@@ -59,7 +59,10 @@ function StatCard({ title, value, description, icon: Icon, iconClassName }: Stat
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className={`h-4 w-4 ${iconClassName ?? 'text-muted-foreground'}`} aria-hidden="true" />
+        <Icon
+          className={`h-4 w-4 ${iconClassName ?? 'text-muted-foreground'}`}
+          aria-hidden="true"
+        />
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>

@@ -5,13 +5,14 @@ import { Check, X } from 'lucide-react'
 
 import { reviewCorrection } from '../actions'
 import { Button } from '@/components/ui/button'
+import { LocalTime } from '@/components/ui/local-time'
 
 interface CorrectionItem {
   id: string
   employeeName: string
   date: string
-  requestedClockIn: string
-  requestedClockOut: string
+  requestedClockIn: string | null
+  requestedClockOut: string | null
   reason: string
 }
 
@@ -66,10 +67,13 @@ function CorrectionRow({ correction }: { correction: CorrectionItem }) {
       <div className="min-w-0">
         <p className="font-medium">
           {correction.employeeName}{' '}
-          <span className="text-muted-foreground">· {correction.date}</span>
+          <span className="text-muted-foreground">
+            · <LocalTime iso={correction.date} mode="date" />
+          </span>
         </p>
         <p className="text-muted-foreground text-sm">
-          Requested: {correction.requestedClockIn} – {correction.requestedClockOut}
+          Requested: <LocalTime iso={correction.requestedClockIn} mode="time" /> –{' '}
+          <LocalTime iso={correction.requestedClockOut} mode="time" />
         </p>
         <p className="mt-1 text-sm">{correction.reason}</p>
         {error ? <p className="mt-1 text-sm text-red-600">{error}</p> : null}

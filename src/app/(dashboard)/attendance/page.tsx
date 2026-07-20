@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/layout/page-header'
 import { AttendanceClock } from './components/AttendanceClock'
 import { CorrectionsQueue } from './components/CorrectionsQueue'
 import { AttendanceStatusBadge } from './components/AttendanceStatusBadge'
+import { LocalTime } from '@/components/ui/local-time'
 
 export const metadata: Metadata = {
   title: 'Attendance',
@@ -18,17 +19,8 @@ function startOfToday(): Date {
   return now
 }
 
-function formatTime(value: Date | null): string {
-  if (!value) return '—'
-  return value.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
-}
-
-function formatDate(value: Date): string {
-  return value.toLocaleDateString('en-IN', {
-    weekday: 'short',
-    day: '2-digit',
-    month: 'short',
-  })
+function iso(value: Date | null): string | null {
+  return value ? value.toISOString() : null
 }
 
 export default async function AttendancePage() {
@@ -83,9 +75,9 @@ export default async function AttendancePage() {
             <p className="text-muted-foreground text-sm">Today</p>
             <div className="mt-1 flex items-center gap-3">
               <span className="text-2xl font-semibold">
-                {formatTime(todayRecord?.clockInTime ?? null)}
+                <LocalTime iso={iso(todayRecord?.clockInTime ?? null)} mode="time" />
                 {' – '}
-                {formatTime(todayRecord?.clockOutTime ?? null)}
+                <LocalTime iso={iso(todayRecord?.clockOutTime ?? null)} mode="time" />
               </span>
               {todayRecord ? <AttendanceStatusBadge status={todayRecord.status} /> : null}
             </div>
@@ -109,9 +101,9 @@ export default async function AttendancePage() {
           corrections={pendingCorrections.map((correction) => ({
             id: correction.id,
             employeeName: correction.employee.user.name,
-            date: formatDate(correction.attendance.date),
-            requestedClockIn: formatTime(correction.requestedClockIn),
-            requestedClockOut: formatTime(correction.requestedClockOut),
+            date: correction.attendance.date.toISOString(),
+            requestedClockIn: iso(correction.requestedClockIn),
+            requestedClockOut: iso(correction.requestedClockOut),
             reason: correction.reason,
           }))}
         />
@@ -142,9 +134,15 @@ export default async function AttendancePage() {
               ) : (
                 history.map((record) => (
                   <tr key={record.id} className="hover:bg-muted/40 border-b">
-                    <td className="p-3">{formatDate(record.date)}</td>
-                    <td className="p-3">{formatTime(record.clockInTime)}</td>
-                    <td className="p-3">{formatTime(record.clockOutTime)}</td>
+                    <td className="p-3">
+                      <LocalTime iso={record.date.toISOString()} mode="date" />
+                    </td>
+                    <td className="p-3">
+                      <LocalTime iso={iso(record.clockInTime)} mode="time" />
+                    </td>
+                    <td className="p-3">
+                      <LocalTime iso={iso(record.clockOutTime)} mode="time" />
+                    </td>
                     <td className="p-3">{record.totalHours ?? '—'}</td>
                     <td className="p-3">
                       <AttendanceStatusBadge status={record.status} />

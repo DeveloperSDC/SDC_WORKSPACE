@@ -5,6 +5,7 @@ import {
   CheckSquare,
   FolderKanban,
   Shield,
+  Settings,
   type LucideIcon,
 } from 'lucide-react'
 import type { PermissionKey } from '@lib/constants/permissions.constants'
@@ -80,6 +81,11 @@ export const NAV_SECTIONS: NavSection[] = [
         href: '/admin',
         icon: Shield,
         requiredPermissions: ['admin:read:all'],
+      },
+      {
+        label: 'Settings',
+        href: '/settings',
+        icon: Settings,
       },
     ],
   },

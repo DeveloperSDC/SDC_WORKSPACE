@@ -15,9 +15,16 @@ interface EmployeeTableProps {
   employees: EmployeeRow[]
   departments: { id: string; name: string }[]
   designations: { id: string; name: string }[]
+  /** Admin / Super Admin only — controls whether add/edit/remove are shown. */
+  canManage: boolean
 }
 
-export function EmployeeTable({ employees, departments, designations }: EmployeeTableProps) {
+export function EmployeeTable({
+  employees,
+  departments,
+  designations,
+  canManage,
+}: EmployeeTableProps) {
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<EmployeeStatus | 'ALL'>('ALL')
 
@@ -44,7 +51,11 @@ export function EmployeeTable({ employees, departments, designations }: Employee
         onSearchChange={setSearch}
         status={status}
         onStatusChange={setStatus}
-        action={<AddEmployeeDialog departments={departments} designations={designations} />}
+        action={
+          canManage ? (
+            <AddEmployeeDialog departments={departments} designations={designations} />
+          ) : undefined
+        }
       />
 
       <div className="rounded-lg border">
@@ -82,19 +93,21 @@ export function EmployeeTable({ employees, departments, designations }: Employee
                     <StatusBadge status={employee.status} />
                   </td>
                   <td className="p-3">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={`Edit ${employee.user.name}`}
-                        nativeButton={false}
-                        render={<Link href={`/employees/${employee.id}/edit`} />}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
+                    {canManage ? (
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`Edit ${employee.user.name}`}
+                          nativeButton={false}
+                          render={<Link href={`/employees/${employee.id}/edit`} />}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
 
-                      <DeleteEmployeeButton id={employee.id} name={employee.user.name} />
-                    </div>
+                        <DeleteEmployeeButton id={employee.id} name={employee.user.name} />
+                      </div>
+                    ) : null}
                   </td>
                 </tr>
               ))
