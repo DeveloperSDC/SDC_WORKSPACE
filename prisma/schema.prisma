@@ -607,6 +607,7 @@ model Employee {
   projectMembers   ProjectMember[]
   ownedProjects    Project[]      @relation("ProjectManager")
   assignedTasks    Task[]         @relation("TaskAssignee")
+  taskAssignments  TaskAssignee[] @relation("TaskAssignees")
   reportedTasks    Task[]         @relation("TaskReporter")
   organizedMeetings Meeting[]
   actionItems      MeetingActionItem[]
@@ -938,6 +939,7 @@ model Task {
   comments   TaskComment[]
   checklists TaskChecklist[]
   attachments TaskAttachment[]
+  assignees  TaskAssignee[]
 
   @@index([status])
   @@index([assigneeId])
@@ -945,6 +947,20 @@ model Task {
   @@index([dueDate])
   @@index([priority])
   @@map("tasks")
+}
+
+/// Join table enabling a task to be assigned to multiple employees.
+model TaskAssignee {
+  taskId     String
+  employeeId String
+  assignedAt DateTime @default(now())
+
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  employee   Employee @relation("TaskAssignees", fields: [employeeId], references: [id])
+
+  @@id([taskId, employeeId])
+  @@index([employeeId])
+  @@map("task_assignees")
 }
 
 model TaskComment {

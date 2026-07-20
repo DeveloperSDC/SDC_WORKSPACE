@@ -36,12 +36,12 @@ export default async function TasksPage() {
         ...(canReadAll || !employeeId
           ? {}
           : {
-              OR: [{ reporterId: employeeId }, { assigneeId: employeeId }],
+              OR: [{ reporterId: employeeId }, { assignees: { some: { employeeId } } }],
             }),
       },
       orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
       include: {
-        assignee: { include: { user: { select: { name: true } } } },
+        assignees: { include: { employee: { include: { user: { select: { name: true } } } } } },
       },
     }),
 
@@ -61,8 +61,7 @@ export default async function TasksPage() {
     dueDate: task.dueDate
       ? task.dueDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
       : null,
-    assigneeId: task.assigneeId,
-    assigneeName: task.assignee?.user.name ?? null,
+    assigneeNames: task.assignees.map((a) => a.employee.user.name),
   }))
 
   const employeeOptions = employees.map((employee) => ({

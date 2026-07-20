@@ -34,7 +34,7 @@ export default async function DashboardPage() {
     employeeId
       ? db.task.findMany({
           where: {
-            assigneeId: employeeId,
+            assignees: { some: { employeeId } },
             isDeleted: false,
             status: { in: [...OPEN_TASK_STATUSES] },
           },

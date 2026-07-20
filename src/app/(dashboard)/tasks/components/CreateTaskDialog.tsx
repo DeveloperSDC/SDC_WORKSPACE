@@ -38,7 +38,7 @@ export function CreateTaskDialog({ employees }: { employees: { id: string; name:
         description: (formData.get('description') as string) || undefined,
         priority: formData.get('priority') as TaskPriority,
         dueDate: (formData.get('dueDate') as string) || undefined,
-        assigneeId: (formData.get('assigneeId') as string) || undefined,
+        assigneeIds: formData.getAll('assigneeIds') as string[],
       })
 
       setOpen(false)
@@ -96,15 +96,23 @@ export function CreateTaskDialog({ employees }: { employees: { id: string; name:
           </div>
 
           <div>
-            <Label htmlFor="assigneeId">Assignee</Label>
-            <select id="assigneeId" name="assigneeId" defaultValue="" className={selectClass}>
-              <option value="">Unassigned</option>
+            <Label htmlFor="assigneeIds">Assignees</Label>
+            <select
+              id="assigneeIds"
+              name="assigneeIds"
+              multiple
+              size={Math.min(5, Math.max(3, employees.length))}
+              className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+            >
               {employees.map((employee) => (
                 <option key={employee.id} value={employee.id}>
                   {employee.name}
                 </option>
               ))}
             </select>
+            <p className="text-muted-foreground mt-1 text-xs">
+              Hold Ctrl / Cmd to select multiple. Leave empty for unassigned.
+            </p>
           </div>
 
           {error ? <p className="text-sm text-red-600">{error}</p> : null}

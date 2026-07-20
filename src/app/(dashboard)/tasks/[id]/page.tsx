@@ -27,7 +27,7 @@ export default async function TaskDetailPage({ params }: TaskPageProps) {
   const task = await db.task.findFirst({
     where: { id, isDeleted: false },
     include: {
-      assignee: { include: { user: { select: { name: true } } } },
+      assignees: { include: { employee: { include: { user: { select: { name: true } } } } } },
       reporter: { include: { user: { select: { name: true } } } },
       project: { select: { id: true, name: true } },
     },
@@ -39,7 +39,9 @@ export default async function TaskDetailPage({ params }: TaskPageProps) {
 
   // View access: read-all, own it, or belong to its project.
   const canReadAll = hasPermission(user, PERMISSIONS.TASKS_READ_ALL)
-  const owns = task.reporterId === user.employeeId || task.assigneeId === user.employeeId
+  const owns =
+    task.reporterId === user.employeeId ||
+    task.assignees.some((a) => a.employeeId === user.employeeId)
 
   let canView = canReadAll || owns
   if (!canView && task.projectId && user.employeeId) {
@@ -120,8 +122,12 @@ export default async function TaskDetailPage({ params }: TaskPageProps) {
           </div>
 
           <div>
-            <p className="text-muted-foreground text-xs">Assignee</p>
-            <p className="mt-1 text-sm">{task.assignee?.user.name ?? 'Unassigned'}</p>
+            <p className="text-muted-foreground text-xs">Assignees</p>
+            <p className="mt-1 text-sm">
+              {task.assignees.length > 0
+                ? task.assignees.map((a) => a.employee.user.name).join(', ')
+                : 'Unassigned'}
+            </p>
           </div>
 
           <div>

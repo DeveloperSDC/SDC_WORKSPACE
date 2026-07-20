@@ -16,8 +16,8 @@ export interface ProjectTaskItem {
   status: TaskStatus
   priority: TaskPriority
   dueDate: string | null
-  assigneeId: string | null
-  assigneeName: string | null
+  assigneeIds: string[]
+  assigneeNames: string[]
 }
 
 const PRIORITIES: TaskPriority[] = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
@@ -58,7 +58,7 @@ export function ProjectTasks({
           title: formData.get('title') as string,
           priority: formData.get('priority') as TaskPriority,
           dueDate: (formData.get('dueDate') as string) || undefined,
-          assigneeId: (formData.get('assigneeId') as string) || undefined,
+          assigneeIds: formData.getAll('assigneeIds') as string[],
           projectId,
         })
       } catch (addError) {
@@ -88,7 +88,8 @@ export function ProjectTasks({
         <ul className="divide-y">
           {tasks.map((task) => {
             const canEditStatus =
-              canManageTasks || (currentEmployeeId != null && task.assigneeId === currentEmployeeId)
+              canManageTasks ||
+              (currentEmployeeId != null && task.assigneeIds.includes(currentEmployeeId))
 
             return (
               <li key={task.id} className="flex items-center justify-between gap-3 py-3">
@@ -100,7 +101,9 @@ export function ProjectTasks({
                     {task.title}
                   </Link>
                   <p className="text-muted-foreground text-xs">
-                    {task.assigneeName ? `Assigned to ${task.assigneeName}` : 'Unassigned'}
+                    {task.assigneeNames.length > 0
+                      ? `Assigned to ${task.assigneeNames.join(', ')}`
+                      : 'Unassigned'}
                     {task.dueDate ? ` · Due ${task.dueDate}` : ''}
                   </p>
                 </div>
@@ -139,8 +142,13 @@ export function ProjectTasks({
             <Input name="title" placeholder="Task title" required />
           </div>
 
-          <select name="assigneeId" defaultValue="" className={selectClass}>
-            <option value="">Unassigned</option>
+          <select
+            name="assigneeIds"
+            multiple
+            size={Math.min(4, Math.max(2, members.length))}
+            className="border-input bg-background rounded-md border px-3 py-1.5 text-sm"
+            aria-label="Assignees (hold Ctrl/Cmd for multiple)"
+          >
             {members.map((member) => (
               <option key={member.id} value={member.id}>
                 {member.name}

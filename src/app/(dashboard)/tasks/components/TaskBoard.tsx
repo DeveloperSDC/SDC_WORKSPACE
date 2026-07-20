@@ -16,8 +16,7 @@ export interface TaskCard {
   status: TaskStatus
   priority: TaskPriority
   dueDate: string | null
-  assigneeId: string | null
-  assigneeName: string | null
+  assigneeNames: string[]
 }
 
 const STATUSES: { value: TaskStatus; label: string }[] = [
@@ -116,7 +115,9 @@ function TaskItem({ task }: { task: TaskCard }) {
       </div>
 
       <p className="text-muted-foreground mt-2 text-xs">
-        {task.assigneeName ? `Assigned to ${task.assigneeName}` : 'Unassigned'}
+        {task.assigneeNames.length > 0
+          ? `Assigned to ${task.assigneeNames.join(', ')}`
+          : 'Unassigned'}
       </p>
 
       <select

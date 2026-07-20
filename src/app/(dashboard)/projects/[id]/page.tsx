@@ -39,7 +39,9 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
       tasks: {
         where: { isDeleted: false },
         orderBy: { createdAt: 'desc' },
-        include: { assignee: { include: { user: { select: { name: true } } } } },
+        include: {
+          assignees: { include: { employee: { include: { user: { select: { name: true } } } } } },
+        },
       },
       _count: { select: { tasks: true } },
     },
@@ -156,8 +158,8 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
             dueDate: task.dueDate
               ? task.dueDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
               : null,
-            assigneeId: task.assigneeId,
-            assigneeName: task.assignee?.user.name ?? null,
+            assigneeIds: task.assignees.map((a) => a.employeeId),
+            assigneeNames: task.assignees.map((a) => a.employee.user.name),
           }))}
         />
 
